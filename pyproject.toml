@@ -1,0 +1,17 @@
+[project]
+name = "konofetch"
+version = "0.1.0"
+description = "kono's fastfetch wrapper"
+authors = [{ name = "Kono" }]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "prompt_toolkit>=3.0",
+]
+
+[project.scripts]
+konofetch = "konofetch.main:entrypoint"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
