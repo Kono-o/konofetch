@@ -67,7 +67,6 @@ venv.bak/
 
 # Local config
 *.env
-anim
 *.ini
 *.toml.local
 *.yaml.local

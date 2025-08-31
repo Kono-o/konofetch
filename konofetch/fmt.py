@@ -193,7 +193,7 @@ def asci_fmt(window):
     frame = State.frame
     fps   = State.fps
     speed = 0.6
-    frames_dir = "/home/kono/.config/neofetch/anim"
+    frames_dir = "/home/kono/.config/fastfetch/anim"
     files = sorted(
         (f for f in os.listdir(frames_dir) if f.endswith(".txt")),
         key=lambda x: int(os.path.splitext(x)[0])
