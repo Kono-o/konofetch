@@ -93,6 +93,10 @@ WARN    = "#ff5e81"
 WHITE   = "#FFFFFF"
 BLACK   = "#000000"
 
+COLD  = "#BFDDFF"  
+MILD  = "#FFE595" 
+HOT   = "#FFBD99" 
+
 palette = {
     "mint":    make_variants(MINT, "mint"),
     "ok":      make_variants(OK, "ok"),
@@ -100,6 +104,9 @@ palette = {
     "warn":    make_variants(WARN, "warn"),
     "white":   make_variants(WHITE, "white"),
     "black":   make_variants(BLACK, "black"),
+    "cold":    make_variants(COLD, "cold"),
+    "mild":    make_variants(MILD, "mild"),
+    "hot":     make_variants(HOT, "hot"), 
 }
 
 
@@ -206,26 +213,42 @@ def asci_fmt(window):
     frame_file = os.path.join(frames_dir, files[idx])
     with open(frame_file, "r", encoding="utf-8") as f:
         content = f.read()
-    line1 = content.splitlines()[1]
-    line2 = content.splitlines()[2]
-    line3 = content.splitlines()[3]
-    line4 = content.splitlines()[4]
-    line5 = content.splitlines()[5]
-    line6 = content.splitlines()[6]
-    line7 = content.splitlines()[7]
-    line8 = content.splitlines()[8]
-    line9 = content.splitlines()[9]
-    line10 = content.splitlines()[10]
-    line11 = content.splitlines()[11]
-    line12 = content.splitlines()[12]
-    line13 = content.splitlines()[13]
-    line14 = content.splitlines()[14]
+    lines = content.splitlines()
+    #line0 = lines[0]
+    line1 = lines[1]
+    line2 = lines[2]
+    line3 = lines[3]
+    line4 = lines[4]
+    line5 = lines[5]
+    line6 = lines[6]
+    line7 = lines[7]
+    line8 = lines[8]
+    line9 = lines[9]
+    line10 = lines[10]
+    line11 = lines[11]
+    line12 = lines[12]
+    line13 = lines[13]
+    line14 = lines[14]
     #print(line1)
     pillar = "│"
     width = 48
     sep1_line = sep(width)
     sep2_line = sep2(width)
-    return [("", "\n\n"),
+
+    disk = State.info["Disk"][0]["bytes"]
+    used = int(disk['used'])
+    #free = int(disk['used'])
+    total = int(disk['total'])
+
+    disk_per = int((used/total) * 100.0)
+    disk_fmt = f"[{fmt_gib(used, digits=1)} / {fmt_gib(total, digits=1)}]"
+    split_idx = int(len(disk_fmt) * (used / total))
+    disk_fmt1 = disk_fmt[:split_idx]
+    disk_fmt2 = disk_fmt[split_idx:]
+    disk_col = percent_color(disk_per)
+
+    return [(palette["white"].fg, "\n "), (palette["white"].b_bg, f"AMELIX"), (bg_s2, " "), (bg_s5, ""),(bg_s8, " "), (bgb_s10, f"FOUNDATION"), (s10, " "), 
+            (disk_col.b_bg, disk_fmt1), (disk_col.d_b_bg, disk_fmt2), ("", " ("), (disk_col.fg, f"{disk_per} %"),("", ")"), ("", "\n"),
             (s0, f" {sep1_line}"),("", "\n"),
             (s1, f" {pillar}{line1}{pillar}"),("", "\n"),
             (s2, f" {pillar}{line2}{pillar}"),("", "\n"),
@@ -258,8 +281,41 @@ def info_fmt(window):
     host = State.info["Title"]["hostName"].lower()
     uptime = fmt_uptime(State.info["Uptime"]["uptime"])
 
+
+    weather = State.info.get("Weather", "").strip()
+
+    if not weather:
+        temp = 0
+        sign = ""
+        cond = ""
+        temp_col = palette["warn"]
+        city = ""
+        country = ""
+    else:
+        try:
+            before, inside = weather.split("(", 1)
+            before = before.strip()
+            inside = inside.strip(") ")
+
+            t, cond = before.split(" - ", 1)
+            temp = int(t.replace("°C", "").strip())
+            sign = "+" if temp >= 0 else "-"
+            temp_col = temp_color(temp)
+
+            city, country = [x.strip() for x in inside.split(",", 1)]
+        except Exception:
+            temp = 0
+            sign = ""
+            cond = weather
+            temp_col = palette["warn"]
+            city = ""
+            country = ""
+
+
+
     #0
-    title_line = [("", "\n "+ gap), (palette["white"].b_bg, f" {user}"), (bg_s2, " "), (bg_s5, ""),(bg_s8, " "), (bgb_s10, f"{host} "),(palette["white"].b_fg, " <"), (s0, f"{uptime}"),(palette["white"].b_fg, ">"), ("", "\n")]
+    title_line = [("", "\n"+ gap), (palette["white"].b_bg, f"{user} "), (bg_s2, " "), (bg_s5, ""),(bg_s8, " "),
+                   (bgb_s10, f"{host} "),(bg_s8, " "),(bg_s5, ""),(bg_s2, " "),(palette["white"].b_bg, f"{uptime}"), (palette["white"].fg, ""), ("", "\n")]
 
     #1
     sep1_line = [(b_s0,  sep(width)), ("", "\n")]
@@ -377,11 +433,17 @@ def fmt_uptime(ms: int) -> str:
     hours, remainder = divmod(seconds, 3600)
     minutes, secs = divmod(remainder, 60)
     return f"{hours:02d}h {minutes:02d}m {secs:02d}s"
+    #return f"{hours:02d}h {minutes:02d}m"
 
-def fmt_gib(bytes_val: int) -> str:
+def fmt_gib(bytes_val: int, digits=2) -> str:
     gib = bytes_val / (1024 ** 3)
-    return f"{gib:.2f} GiB"
-
+    if digits == 1 :
+        return f"{gib:.1f} GiB"
+    if digits == 2 :
+        return f"{gib:.2f} GiB"
+    else :
+        return f"{gib:.3f} GiB"
+    
 def sep(width: int, fill: str = "─", left: str = "╭", right: str = "╮") -> str:
     width = width + 4
     if width < 2:
@@ -404,10 +466,20 @@ def percent_color(value: int):
 
     if value <= 33:
         return palette["ok"]
-    elif value <= 66:
+    elif value <= 50:
         return palette["caution"]
     else:
         return palette["warn"]
+
+def temp_color(temp: int):
+    if not isinstance(temp, int):
+        return palette["warn"]
+    if temp <= 15:
+        return palette["cold"]
+    elif temp <= 28:
+        return palette["mild"]
+    else:
+        return palette["hot"]
 
 def cpu_temp_color(value: int):
     if not isinstance(value, int):
@@ -439,7 +511,7 @@ def game_lines(frame: int, width: int, seed=int):
     balls = 3
     speed = 0.5
     width = width + 2
-    rng = random.Random(seed)
+    rng = random.Random(seed * 12032394)
 
     # pre-generate ball configs
     configs = []
