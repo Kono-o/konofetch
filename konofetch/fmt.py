@@ -13,7 +13,7 @@ def color(fg_hex, bg_hex=None, bold=False, italic=False):
         parts.append('italic')
     return ' '.join(parts)
 
-def darken(hexcode: str, factor: float = 0.8) -> str:
+def darken(hexcode: str, factor: float = 0.2) -> str:
     hexcode = hexcode.lstrip("#")
     if len(hexcode) != 6:
         raise ValueError("Hex code must be in format #RRGGBB")
@@ -28,19 +28,6 @@ def darken(hexcode: str, factor: float = 0.8) -> str:
     return "#{:02x}{:02x}{:02x}".format(r, g, b)
 
 # --- COLOR CONSTANTS ---
-#S0 = "#FF8C00"
-#S1 = "#FF7A2C"
-#S2 = "#FF6857"
-#S3 = "#FF5683"
-#S4 = "#FF44AE"
-#S5 = "#FF24DA"
-#S6 = "#EE26E2"
-#S7 = "#DC27E9"
-#S8 = "#C928EF"
-#S9 = "#B729F5"
-#S10 = "#9B29FA"
-#S11 = "#7E29FF"
-
 S0  = "#E5E5FF"
 S1  = "#DBDBFF"
 S2  = "#D1D1FF"
@@ -65,6 +52,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class ColorVariants:
     fg: str     # normal fg
+    ital: str   # italic
     b_fg: str   # bold fg
     bg: str     # fg on bg
     b_bg: str   # bold fg on bg
@@ -77,6 +65,7 @@ def make_variants(hexcode: str, name: str, darken_factor: float = 0.5) -> ColorV
     d_hex = darken(hexcode, darken_factor)
     return ColorVariants(
         fg    = color(hexcode),
+        ital    =color(hexcode, italic=True),
         b_fg  = color(hexcode, bold=True),
         bg    = color(BLACK, hexcode),
         b_bg  = color(BLACK, hexcode, bold=True),
@@ -86,7 +75,7 @@ def make_variants(hexcode: str, name: str, darken_factor: float = 0.5) -> ColorV
         d_b_bg  = color(BLACK, d_hex, bold=True),
     )
 
-MINT    = "#ddffad"
+MINT    = "#b9ffde"
 OK      = "#baff9f"
 CAUTION = "#ffd56a"
 WARN    = "#ff5e81"
@@ -245,7 +234,7 @@ def asci_fmt(window):
     split_idx = int(len(disk_fmt) * (used / total))
     disk_fmt1 = disk_fmt[:split_idx]
     disk_fmt2 = disk_fmt[split_idx:]
-    disk_col = percent_color(disk_per)
+    disk_col = disk_color(disk_per)
 
     return [(palette["white"].fg, "\n "), (palette["white"].b_bg, f"AMELIX"), (bg_s2, " "), (bg_s5, ""),(bg_s8, " "), (bgb_s10, f"FOUNDATION"), (s10, " "), 
             (disk_col.b_bg, disk_fmt1), (disk_col.d_b_bg, disk_fmt2), ("", " ("), (disk_col.fg, f"{disk_per} %"),("", ")"), ("", "\n"),
@@ -324,7 +313,7 @@ def info_fmt(window):
     kr = State.info["Kernel"]["release"].rsplit("-", 1)[0]
 
     #2
-    os_line = [("",  gap), (s1, f"{pillar} os: "), (palette["mint"].fg, f"{os}"), (s1, f" ~ kr: {kr}"), (s1, f" {pillar}\n")]
+    os_line = [("",  gap), (s1, f"{pillar} os: "), (palette["mint"].b_fg, f"{os}"), (s1, f" ~ kr: "), (b_s1, f"{kr}"), (s1, f" {pillar}\n")]
 
     de = State.info["DE"]["prettyName"].lower()
     wm = State.info["WM"]["prettyName"].lower()
@@ -343,13 +332,16 @@ def info_fmt(window):
     #5
     gap1_line = [(s4, f"{pillar}                                {pillar}\n")]
 
+    spinner = ["—", "\\", "|", "/"]
+    spin_idx = int(State.frame/4) % 4
+
     cpu = " ".join(State.info["CPU"]["cpu"].split()[1:]).lower()
     cores = State.info["CPU"]["cores"]["online"]
     ctemp = int(State.info["CPU"]["temperature"])
     ctemp_col = cpu_temp_color(ctemp)
 
     #6
-    cpu_line = [(b_s5,  gap +  f"{pillar} cpu: {cpu}({cores}) ~ "), ("", "("), (ctemp_col.fg, f"{ctemp}°C"),("", ")"), (b_s5, f" {pillar}\n")]
+    cpu_line = [(b_s5,  gap +  f"{pillar} cpu: {cpu}({cores}) {spinner[spin_idx]} "), ("", "("), (ctemp_col.fg, f"{ctemp}°C"),("", ")"), (b_s5, f" {pillar}\n")]
 
 
     ram_total = State.info["Memory"]["total"]
@@ -373,7 +365,7 @@ def info_fmt(window):
     gtemp_col = gpu_temp_color(gtemp)
 
     #8
-    gpu_line = [("",  gap), (s7, f"{pillar}"), (b_s7, f" gpu: {gpun}({freq}) ~ "), ("", "("), (gtemp_col.fg, f"{gtemp}°C"),("", ")"), (b_s7, f" {pillar}\n")]
+    gpu_line = [("",  gap), (s7, f"{pillar}"), (b_s7, f" gpu: {gpun}({freq}) {spinner[spin_idx]} "), ("", "("), (gtemp_col.fg, f"{gtemp}°C"),("", ")"), (b_s7, f" {pillar}\n")]
 
     vram_total = gpu["memory"]["dedicated"]["total"]
     vram_used = gpu["memory"]["dedicated"]["used"]  
@@ -467,6 +459,19 @@ def percent_color(value: int):
     if value <= 33:
         return palette["ok"]
     elif value <= 50:
+        return palette["caution"]
+    else:
+        return palette["warn"]
+
+def disk_color(value: int):
+    if not isinstance(value, int):
+        return palette["warn"] 
+    if not 0 <= value <= 100:
+        return palette["warn"]  
+
+    if value <= 50:
+        return palette["ok"]
+    elif value <= 80:
         return palette["caution"]
     else:
         return palette["warn"]
