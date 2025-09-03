@@ -65,7 +65,7 @@ def make_variants(hexcode: str, name: str, darken_factor: float = 0.5) -> ColorV
     d_hex = darken(hexcode, darken_factor)
     return ColorVariants(
         fg    = color(hexcode),
-        ital    =color(hexcode, italic=True),
+        ital   =color(hexcode, italic=True),
         b_fg  = color(hexcode, bold=True),
         bg    = color(BLACK, hexcode),
         b_bg  = color(BLACK, hexcode, bold=True),
@@ -82,9 +82,9 @@ WARN    = "#ff5e81"
 WHITE   = "#FFFFFF"
 BLACK   = "#000000"
 
-COLD  = "#BFDDFF"  
-MILD  = "#FFE595" 
-HOT   = "#FFBD99" 
+COLD  = "#BFDDFF"
+MILD  = "#FFE595"
+HOT   = "#FFBD99"
 
 palette = {
     "mint":    make_variants(MINT, "mint"),
@@ -95,7 +95,7 @@ palette = {
     "black":   make_variants(BLACK, "black"),
     "cold":    make_variants(COLD, "cold"),
     "mild":    make_variants(MILD, "mild"),
-    "hot":     make_variants(HOT, "hot"), 
+    "hot":     make_variants(HOT, "hot"),
 }
 
 
@@ -236,7 +236,7 @@ def asci_fmt(window):
     disk_fmt2 = disk_fmt[split_idx:]
     disk_col = disk_color(disk_per)
 
-    return [(palette["white"].fg, "\n "), (palette["white"].b_bg, f"AMELIX"), (bg_s2, " "), (bg_s5, ""),(bg_s8, " "), (bgb_s10, f"FOUNDATION"), (s10, " "), 
+    return [(palette["white"].fg, " "), (palette["white"].b_bg, f"AMELIX"), (bg_s2, " "), (bg_s5, ""),(bg_s8, " "), (bgb_s10, f"FOUNDATION"), (s10, " "),
             (disk_col.b_bg, disk_fmt1), (disk_col.d_b_bg, disk_fmt2), ("", " ("), (disk_col.fg, f"{disk_per} %"),("", ")"), ("", "\n"),
             (s0, f" {sep1_line}"),("", "\n"),
             (s1, f" {pillar}{line1}{pillar}"),("", "\n"),
@@ -303,7 +303,7 @@ def info_fmt(window):
 
 
     #0
-    title_line = [("", "\n"+ gap), (palette["white"].b_bg, f"{user} "), (bg_s2, " "), (bg_s5, ""),(bg_s8, " "),
+    title_line = [("", ""+ gap), (palette["white"].b_bg, f"{user} "), (bg_s2, " "), (bg_s5, ""),(bg_s8, " "),
                    (bgb_s10, f"{host} "),(bg_s8, " "),(bg_s5, ""),(bg_s2, " "),(palette["white"].b_bg, f"{uptime}"), (palette["white"].fg, ""), ("", "\n")]
 
     #1
@@ -315,22 +315,32 @@ def info_fmt(window):
     #2
     os_line = [("",  gap), (s1, f"{pillar} os: "), (palette["mint"].b_fg, f"{os}"), (s1, f" ~ kr: "), (b_s1, f"{kr}"), (s1, f" {pillar}\n")]
 
-    de = State.info["DE"]["prettyName"].lower()
-    wm = State.info["WM"]["prettyName"].lower()
-    prot = State.info["WM"]["protocolName"].lower()
+    lm = State.info["LM"]["service"].lower()
+    mb  = State.info["Host"]["name"].upper()
+    bios = State.info["BIOS"]["type"].upper()
 
     #3
-    de_line = [(s2,  gap +  f"{pillar} de: {de},"), (s2, f" wm: {wm} ({prot})"), (s2, f" {pillar}\n")]
+    lm_line = [(s2, gap + f"{pillar} lm: {lm} ~ "), (b_s2, f"{mb}"),(s2, f" ({bios}) {pillar}\n")]
 
-    tm = State.info["Terminal"]["prettyName"].lower()
-    sh = "fish" # override python3 hackfix 
-    tx = State.info["Editor"]["name"].lower()
+    de = State.info.get("DE", {}).get("prettyName", "").lower()
+    wm = State.info["WM"]["prettyName"].lower()
+    prot = State.info["WM"]["protocolName"].lower()
+    comp = f"picom({prot})"
 
     #4
-    tm_line = [(s3,  gap +  f"{pillar} tm: {tm}, sh: {sh}, tx: {tx}"), (s3, f" {pillar}\n")]
+    if de:
+        de_line = [(s3, gap + f"{pillar} de: {de},"), (s3, f" wm: {wm} ({prot})"), (s3, f" {pillar}\n")]
+    else:
+        de_line = [(s3, gap + f"{pillar} wm: {wm} + comp: {comp} {pillar}\n")]
+
+
+    tm = State.info["Terminal"]["prettyName"].lower()
+    sh = "fish" # override python3 hackfix
+    tx = State.info["Editor"]["name"].lower()
 
     #5
-    gap1_line = [(s4, f"{pillar}                                {pillar}\n")]
+    tm_line = [(s4,  gap +  f"{pillar} tm: {tm}, sh: {sh}, tx: {tx}"), (s3, f" {pillar}\n")]
+
 
     spinner = ["—", "\\", "|", "/"]
     spin_idx = int(State.frame/4) % 4
@@ -352,10 +362,10 @@ def info_fmt(window):
     ram_fmt1 = ram_fmt[:split_idx]
     ram_fmt2 = ram_fmt[split_idx:]
     ram_col = percent_color(ram_per)
-    
+    ram_per_fmt = fmt_percent(ram_per)
     #7
-    ram_line = [("",  gap), (s6, f"{pillar}"), (b_s6, " > "), (ram_col.b_bg, ram_fmt1), (ram_col.d_b_bg, ram_fmt2), ("", " ("), (ram_col.fg, f"{ram_per} %"),("", ")"), (s6, f" {pillar}\n")]
-    
+    ram_line = [("",  gap), (s6, f"{pillar}"), (b_s6, " > "), (ram_col.b_bg, ram_fmt1), (ram_col.d_b_bg, ram_fmt2), ("", " ("), (ram_col.fg, f"{ram_per_fmt}"),("", ")"), (s6, f" {pillar}\n")]
+
 
     gpu = State.info["GPU"][0]
     gpun = " ".join(gpu["name"].split()[2:]).lower()
@@ -368,16 +378,17 @@ def info_fmt(window):
     gpu_line = [("",  gap), (s7, f"{pillar}"), (b_s7, f" gpu: {gpun}({freq}) {spinner[spin_idx]} "), ("", "("), (gtemp_col.fg, f"{gtemp}°C"),("", ")"), (b_s7, f" {pillar}\n")]
 
     vram_total = gpu["memory"]["dedicated"]["total"]
-    vram_used = gpu["memory"]["dedicated"]["used"]  
+    vram_used = gpu["memory"]["dedicated"]["used"]
     vram_per = int((vram_used/vram_total) * 100.0)
     vram_fmt = f"[{fmt_gib(vram_used)} / {fmt_gib(vram_total)}]"
     split_idx = int(len(vram_fmt) * (vram_used / vram_total))
     vram_fmt1 = vram_fmt[:split_idx]
     vram_fmt2 = vram_fmt[split_idx:]
     vram_col = percent_color(vram_per)
-    
+    vram_per_fmt = fmt_percent(vram_per)
+
     #9
-    vram_line = [("",  gap), (s8, f"{pillar}"), (b_s8, " > "), (vram_col.b_bg, vram_fmt1), (vram_col.d_b_bg, vram_fmt2), ("", " ("), (vram_col.fg, f"{vram_per} %"),("", ")"), (s8, f" {pillar}\n")]
+    vram_line = [("",  gap), (s8, f"{pillar}"), (b_s8, " > "), (vram_col.b_bg, vram_fmt1), (vram_col.d_b_bg, vram_fmt2), ("", " ("), (vram_col.fg, f"{vram_per_fmt}"),("", ")"), (s8, f" {pillar}\n")]
 
     #10-14
     gap2, gap3, gap4, gap5, gap6 = game_lines(frame=State.frame, width=width, seed=1)
@@ -417,8 +428,13 @@ def info_fmt(window):
     sep2_line = [(b_s15,  sep2(width)), ("", "\n")]
 
     #FINAL
-    return title_line + sep1_line + os_line + de_line + tm_line + gap1_line + cpu_line + ram_line + gpu_line + vram_line + gap2_line + gap3_line + gap4_line + gap5_line + gap6_line + song_line + sep2_line
+    return title_line + sep1_line + os_line + lm_line + de_line + tm_line + cpu_line + ram_line + gpu_line + vram_line + gap2_line + gap3_line + gap4_line + gap5_line + gap6_line + song_line + sep2_line
 
+def fmt_percent(per: int) ->str:
+    if per < 10:
+        return f"0{per} %"
+    else:
+        return f"{per} %"
 
 def fmt_uptime(ms: int) -> str:
     seconds = ms // 1000
@@ -435,7 +451,7 @@ def fmt_gib(bytes_val: int, digits=2) -> str:
         return f"{gib:.2f} GiB"
     else :
         return f"{gib:.3f} GiB"
-    
+
 def sep(width: int, fill: str = "─", left: str = "╭", right: str = "╮") -> str:
     width = width + 4
     if width < 2:
@@ -452,9 +468,9 @@ def sep2(width: int, fill: str = "─", left: str = "╰", right: str = "╯") -
 
 def percent_color(value: int):
     if not isinstance(value, int):
-        return palette["warn"] 
+        return palette["warn"]
     if not 0 <= value <= 100:
-        return palette["warn"]  
+        return palette["warn"]
 
     if value <= 33:
         return palette["ok"]
@@ -465,9 +481,9 @@ def percent_color(value: int):
 
 def disk_color(value: int):
     if not isinstance(value, int):
-        return palette["warn"] 
+        return palette["warn"]
     if not 0 <= value <= 100:
-        return palette["warn"]  
+        return palette["warn"]
 
     if value <= 50:
         return palette["ok"]
@@ -509,7 +525,7 @@ def gpu_temp_color(value: int):
         return palette["caution"]
     else:
         return palette["warn"]
-    
+
 import random
 def game_lines(frame: int, width: int, seed=int):
     height = 5
